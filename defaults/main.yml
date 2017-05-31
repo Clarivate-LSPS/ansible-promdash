@@ -11,3 +11,5 @@ promdash_data_dir:      /var/lib/promdash/data
 
 promdash_download_path: /tmp
 promdash_workdir:       "{{ promdash_download_path }}/promdash_workdir"
+
+promdash_port: 9060

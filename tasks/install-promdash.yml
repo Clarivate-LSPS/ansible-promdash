@@ -16,27 +16,25 @@
     path: '{{ promdash_install_path }}/.installed'
   register: promdash_installed
 
+- name: Create directories
+  file:
+    path: '{{ item }}'
+    state: directory
+    owner: '{{ promdash_user }}'
+    group: '{{ promdash_group }}'
+  with_items:
+    - '{{ promdash_data_dir }}'
+    - '{{ promdash_install_path }}'
+    - '{{ promdash_log_path }}'
+    - '{{ promdash_pid_path }}'
+
 - block:
-  - name: Create directories
-    file:
-      path: '{{ item }}'
-      state: directory
-      owner: '{{ promdash_user }}'
-      group: '{{ promdash_group }}'
-    with_items:
-      - '{{ promdash_data_dir }}'
-      - '{{ promdash_install_path }}'
-      - '{{ promdash_log_path }}'
-      - '{{ promdash_pid_path }}'
-      
   - name: Download repository
     git:
       repo: https://github.com/prometheus/promdash.git
       dest: "{{ promdash_install_path }}"
       depth: 1
       force: yes
-    become: yes
-    become_user: '{{ promdash_user }}'
 
   - name: Install dependencies
     shell: bundle install --without mysql postgresql
@@ -50,13 +48,23 @@
       export RAILS_ENV=production
       rake db:migrate
       rake assets:precompile
-      (echo '#!/usr/bin/env bash'; echo 'DATABASE_URL=sqlite3:{{promdash_db_path}} RAILS_ENV=production bundle exec thin -p 9060 start "$@"') > promdash
+      (echo '#!/usr/bin/env bash'; echo 'cd "{{ promdash_install_path }}"'; echo 'DATABASE_URL=sqlite3:{{promdash_db_path}} RAILS_ENV=production bundle exec thin -p {{ promdash_port }} start "$@"') > promdash
       chmod a+x promdash
-      touch .installed
     args:
       chdir: "{{ promdash_install_path }}"
-    become: yes
-    become_user: '{{ promdash_user }}'
+
+  - name: Set DB permissions
+    file: 
+      path: '{{ promdash_db_path }}'
+      owner: '{{ promdash_user }}'
+      group: '{{ promdash_group }}'
+      state: file
+      
+  - name: set PromDash installed flag
+    shell: touch .installed
+    args:
+      chdir: "{{ promdash_install_path }}"
+
   when: not promdash_installed.stat.exists|bool
 
 - name: set promdash defaults

@@ -25,6 +25,8 @@ promdash_install_path:  /opt/promdash
 promdash_log_path:      /var/log/promdash
 promdash_pid_path:      /var/run/promdash
 promdash_data_dir:      /var/lib/promdash/data
+
+promdash_port: 9060
 ```
 
 
