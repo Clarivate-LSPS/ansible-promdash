@@ -1,0 +1,74 @@
+---
+- name: install packages required for PromDash
+  package:
+    name: '{{item}}'
+    state: installed
+  with_items:
+    - ruby
+    - bundler
+    - libsqlite3-dev
+    - sqlite3
+    - zlib1g-dev
+    - rake
+
+- name: check if PromDash already installed
+  stat:
+    path: '{{ promdash_install_path }}/.installed'
+  register: promdash_installed
+
+- block:
+  - name: Create directories
+    file:
+      path: '{{ item }}'
+      state: directory
+      owner: '{{ promdash_user }}'
+      group: '{{ promdash_group }}'
+    with_items:
+      - '{{ promdash_data_dir }}'
+      - '{{ promdash_install_path }}'
+      - '{{ promdash_log_path }}'
+      - '{{ promdash_pid_path }}'
+      
+  - name: Download repository
+    git:
+      repo: https://github.com/prometheus/promdash.git
+      dest: "{{ promdash_install_path }}"
+      depth: 1
+      force: yes
+    become: yes
+    become_user: '{{ promdash_user }}'
+
+  - name: Install dependencies
+    shell: bundle install --without mysql postgresql
+    args:
+      chdir: "{{ promdash_install_path }}"
+
+  - name: Apply migrations and compile assets
+    shell: |
+      set -e
+      export DATABASE_URL=sqlite3:{{promdash_db_path}}
+      export RAILS_ENV=production
+      rake db:migrate
+      rake assets:precompile
+      (echo '#!/usr/bin/env bash'; echo 'DATABASE_URL=sqlite3:{{promdash_db_path}} RAILS_ENV=production bundle exec thin -p 9060 start "$@"') > promdash
+      chmod a+x promdash
+      touch .installed
+    args:
+      chdir: "{{ promdash_install_path }}"
+    become: yes
+    become_user: '{{ promdash_user }}'
+  when: not promdash_installed.stat.exists|bool
+
+- name: set promdash defaults
+  copy: src="../files/etc-default-promdash" dest=/etc/default/promdash
+
+- name: copy INIT script to server
+  template: src="../templates/promdash.sysvinit.{{ ansible_os_family|lower }}.sh.j2"  dest="/etc/init.d/promdash" mode="a+x"
+  when: not promdash_use_systemd|bool
+
+- name: copy systemd config to server
+  template: src="../templates/promdash.service.j2"  dest="/lib/systemd/system/promdash.service"
+  when: promdash_use_systemd
+
+- name: set INIT status
+  service: name=promdash enabled=yes state=restarted

@@ -1,0 +1,5 @@
+---
+- hosts: localhost,promdash-test
+  remote_user: root
+  roles:
+    - Clarivate-LSPS.promdash

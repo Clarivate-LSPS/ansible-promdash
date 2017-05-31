@@ -1,0 +1,21 @@
+[Unit]
+Description=PromDash - Prometheus Dashboard.
+Documentation=https://github.com/Clarivate-LSPS/ansible-promdash
+After=network.target
+
+[Service]
+Type=simple
+
+#ExecStartPre=/bin/sh -c  " mkdir -p '{{ promdash_pid_path }}' '{{ promdash_log_path }}' "
+#ExecStartPre=/bin/sh -c  " chown -R {{ promdash_user }} '{{ promdash_pid_path }}' '{{ promdash_log_path }}' "
+#PIDFile={{ promdash_pid_path }}/promdash.pid
+
+
+User={{ promdash_user }}
+Group={{ promdash_group }}
+
+{% if promdash_opts is defined %}
+    ExecStart={{ promdash_install_path }}/promdash {{ promdash_opts }}
+{% else %}
+    ExecStart={{ promdash_install_path }}/promdash
+{% endif %}

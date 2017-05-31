@@ -1,0 +1,2 @@
+---
+promdash_db_path:  '{{promdash_data_dir}}/promdash.sqlite3'

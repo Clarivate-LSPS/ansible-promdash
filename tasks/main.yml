@@ -1,0 +1,25 @@
+---
+- name: set role variables, if necessary
+  include: set-role-variables.yml
+
+- name: install helper utility "gosu"
+  include: install-gosu.yml
+  when: not promdash_use_systemd|bool
+  
+- name: create PromDash group
+  group: name={{ promdash_group }}  state=present
+
+- name: create PromDash user
+  user:
+    name: "{{ promdash_user }}"
+    group: "{{ promdash_group }}"
+    createhome: no
+    shell: /sbin/nologin
+    comment: "Prometheus Dashboard User"
+    state: present
+
+- name: install PromDash 
+  include: install-promdash.yml
+
+
+    

@@ -1,0 +1,13 @@
+---
+gosu_version:   '1.10'
+
+promdash_user:   promdash
+promdash_group:  promdash
+
+promdash_install_path:  /opt/promdash
+promdash_log_path:      /var/log/promdash
+promdash_pid_path:      /var/run/promdash
+promdash_data_dir:      /var/lib/promdash/data
+
+promdash_download_path: /tmp
+promdash_workdir:       "{{ promdash_download_path }}/promdash_workdir"
